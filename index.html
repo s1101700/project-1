@@ -77,6 +77,9 @@
         <input type="email" id="email" placeholder="電子郵件">
         <input type="password" id="password" placeholder="密碼">
         <button id="login-button">登入</button>
+        <div id="google-login" style="margin-top: 20px;">
+            <button id="google-login-button">使用 Google 登入</button>
+        </div>
         <div class="error-message" id="error-message"></div>
     </div>
 
@@ -88,7 +91,7 @@
         // Firebase 初始化
         const firebaseConfig = {
             apiKey: "AIzaSyBEmo_Za0U52zNFBz-IikurtL0UWcco0sc",
-            authDomain: "project-f7999.firebaseapp.com",
+            authDomain: "project-seven-mocha-98.vercel.app",
             projectId: "project-f7999",
             storageBucket: "project-f7999.appspot.com",
             messagingSenderId: "579656505169",
@@ -120,6 +123,22 @@
                 .catch((error) => {
                     console.error("登入錯誤:", error);
                     errorMessage.textContent = `登入失敗：${error.message}`;
+                });
+        });
+
+        // Google 登入
+        const googleLoginButton = document.getElementById('google-login-button');
+        googleLoginButton.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    console.log('登入成功:', user);
+                    window.location.href = 'notes.html'; // 登入成功後跳轉到筆記本頁面
+                })
+                .catch((error) => {
+                    console.error('Google 登入錯誤:', error);
+                    errorMessage.textContent = `Google 登入失敗：${error.message}`;
                 });
         });
     </script>
