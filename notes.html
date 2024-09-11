@@ -5,7 +5,7 @@
     <!-- 您原本的 head 內容 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網路筆記本</title>
+    <title>網頁筆記本</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         /* 您原本的 CSS 內容 */
@@ -166,10 +166,10 @@
 
 <body>
     <div class="container">
-        <h1>網路筆記本</h1>
+        <h1>網頁筆記本</h1>
 
         <!-- 新增的搜尋輸入框和按鈕 -->
-        <input type="text" id="search-input" placeholder="搜尋筆記標題">
+        <input type="text" id="search-input" placeholder="搜尋筆記標題或分類">
         <button id="search-button">搜尋</button>
 
         <div id="notes-container">
@@ -240,11 +240,17 @@
                 displayNotes(); // 顯示所有筆記
                 return;
             }
+
             db.collection('Notes').get().then((querySnapshot) => {
                 notesContainer.innerHTML = '';
                 querySnapshot.forEach(doc => {
                     const note = doc.data();
-                    if (note.title && note.title.toLowerCase().includes(searchTerm)) {
+                    // 將標題和分類都轉換為小寫，並檢查是否包含搜尋字詞
+                    const titleMatches = note.title && note.title.toLowerCase().includes(searchTerm);
+                    const categoryMatches = note.category && note.category.toLowerCase().includes(searchTerm);
+
+                    // 如果標題或分類匹配，顯示該筆記
+                    if (titleMatches || categoryMatches) {
                         createNoteElement(doc.id, note);
                     }
                 });
