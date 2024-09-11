@@ -56,6 +56,7 @@
             transition: background 0.3s ease;
             font-weight: 600;
             font-size: 16px;
+            margin-top: 10px;
         }
 
         button:hover {
@@ -64,6 +65,10 @@
 
         .error-message {
             color: #ff0000;
+            margin-top: 10px;
+        }
+
+        .g_id_signin {
             margin-top: 10px;
         }
     </style>
@@ -77,21 +82,22 @@
         <input type="email" id="email" placeholder="電子郵件">
         <input type="password" id="password" placeholder="密碼">
         <button id="login-button">登入</button>
-        <div id="google-login" style="margin-top: 20px;">
-            <button id="google-login-button">使用 Google 登入</button>
-        </div>
+        <div class="g_id_signin" data-type="standard"></div>
         <div class="error-message" id="error-message"></div>
     </div>
 
     <!-- 引入 Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
-    
+
+    <!-- 引入 Google Sign-In SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <script>
         // Firebase 初始化
         const firebaseConfig = {
             apiKey: "AIzaSyBEmo_Za0U52zNFBz-IikurtL0UWcco0sc",
-            authDomain: "project-f7999.appspot.com",
+            authDomain: "project-f7999.firebaseapp.com",
             projectId: "project-f7999",
             storageBucket: "project-f7999.appspot.com",
             messagingSenderId: "579656505169",
@@ -126,21 +132,35 @@
                 });
         });
 
-        // Google 登入
-        const googleLoginButton = document.getElementById('google-login-button');
-        googleLoginButton.addEventListener('click', () => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    const user = result.user;
-                    console.log('登入成功:', user);
-                    window.location.href = 'notes.html'; // 登入成功後跳轉到筆記本頁面
+        // Google Sign-In 回調
+        function handleCredentialResponse(response) {
+            const idToken = response.credential;
+            console.log("Google 登入成功，Token:", idToken);
+
+            // 使用 Firebase 驗證 Google ID token
+            const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+            auth.signInWithCredential(credential)
+                .then(() => {
+                    window.location.href = 'notes.html'; // 成功後跳轉
                 })
                 .catch((error) => {
-                    console.error('Google 登入錯誤:', error);
+                    console.error("Google 登入錯誤:", error);
                     errorMessage.textContent = `Google 登入失敗：${error.message}`;
                 });
-        });
+        }
+
+        // 初始化 Google Sign-In
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: "715917632729-ngs5teqf9f253uupmjisurpbegepr9ar.apps.googleusercontent.com",
+                callback: handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.querySelector('.g_id_signin'), // 渲染按鈕的位置
+                { theme: "outline", size: "large" } // 按鈕樣式
+            );
+        };
     </script>
 </body>
 
