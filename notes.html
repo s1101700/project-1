@@ -306,6 +306,7 @@
         // 顯示筆記
         async function displayNotes() {
             if (!currentUser) return;
+
             // 每次顯示筆記前先清空容器，避免重複顯示
             notesContainer.innerHTML = '';
             
@@ -315,7 +316,6 @@
                 createNoteElement(doc.id, note);
             });
         }
-
         // 搜尋筆記
         const searchButton = document.getElementById('search-button');
         searchButton.addEventListener('click', searchNotes);
@@ -415,12 +415,14 @@
 
             document.getElementById(`save-note-${id}`).addEventListener('click', async () => {
                 const textContent = document.getElementById(`text-content-${id}`).value;
-                const dataURL = canvas.toDataURL();
+                const dataURL = canvas.toDataURL(); // 確保 dataURL 獲取成功
+                const textColor = textColorPicker.value;
+
                 await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(id).update({
-                    canvasData: dataURL,
-                    content: textContent,
-                    textColor: textColorPicker.value,  // 確保文字顏色也被保存
-                    brushSize: brushSize
+                    canvasData: dataURL,       // 保存畫布的數據
+                    content: textContent,      // 保存筆記文本內容
+                    textColor: textColor,      // 保存文字顏色
+                    brushSize: brushSize       // 保存畫筆大小
                 });
             });
 
@@ -506,6 +508,17 @@
                 currentUser = null;
                 toggleUI();  // 登出時更新 UI
             }
+        });
+
+        await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(id).update({
+            canvasData: dataURL,
+            content: textContent,
+            textColor: textColor,
+            brushSize: brushSize
+        }).then(() => {
+            console.log('筆記已成功更新');
+        }).catch(error => {
+            console.error('更新筆記時出錯:', error);
         });
 
         displayNotes(); // 初始加載筆記列表
