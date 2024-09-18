@@ -2,13 +2,11 @@
 <html lang="en">
 
 <head>
-    <!-- 您原本的 head 內容 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>網頁筆記本</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        /* 您原本的 CSS 內容 */
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #f2f4f8;
@@ -201,11 +199,13 @@
     <div class="container">
         <h1>網頁筆記本</h1>
         <div class="header">
-            <button id="new-note">新增筆記</button>
+            <button id="login-button">Google 登入</button>
+            <button id="new-note" style="display: none;">新增筆記</button>
+            <button id="logout-button" style="display: none;">登出</button>
         </div>
 
-        <!-- 新增的搜尋輸入框和按鈕 -->
-        <div id="search-container">
+        <!-- 搜尋輸入框和按鈕 -->
+        <div id="search-container" style="display: none;">
             <input type="text" id="search-input" placeholder="搜尋筆記標題或分類">
             <button id="search-button">搜尋</button>
         </div>
@@ -215,101 +215,139 @@
         </div>
     </div>
 
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
     <script>
         // Firebase 初始化
-       const firebaseConfig = {
-        apiKey: "AIzaSyBEmo_Za0U52zNFBz-IikurtL0UWcco0sc",
-        authDomain: "project-f7999.firebaseapp.com",
-        databaseURL: "https://project-f7999-default-rtdb.firebaseio.com",
-        projectId: "project-f7999",
-        storageBucket: "project-f7999.appspot.com",
-        messagingSenderId: "579656505169",
-        appId: "1:579656505169:web:29fc7a9ed5764e35a66570",
-        measurementId: "G-GP2NN9Y1D5"
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEmo_Za0U52zNFBz-IikurtL0UWcco0sc",
+            authDomain: "project-f7999.firebaseapp.com",
+            databaseURL: "https://project-f7999-default-rtdb.firebaseio.com",
+            projectId: "project-f7999",
+            storageBucket: "project-f7999.appspot.com",
+            messagingSenderId: "579656505169",
+            appId: "1:579656505169:web:29fc7a9ed5764e35a66570",
+            measurementId: "G-GP2NN9Y1D5"
         };
 
         const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.firestore(app);
 
-        const notesContainer = document.getElementById('notes-container');
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
         const newNoteButton = document.getElementById('new-note');
+        const notesContainer = document.getElementById('notes-container');
+        const searchContainer = document.getElementById('search-container');
+
+        let currentUser = null;
+
+        // Google 登入
+        loginButton.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then(result => {
+                    currentUser = result.user;
+                    toggleUI();
+                    displayNotes();
+                })
+                .catch(error => {
+                    console.error('Google 登入失敗:', error);
+                });
+        });
+
+        // 登出
+        logoutButton.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                currentUser = null;
+                toggleUI();
+            });
+        });
+
+        // 切換 UI 狀態
+        function toggleUI() {
+            if (currentUser) {
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+                newNoteButton.style.display = 'inline-block';
+                searchContainer.style.display = 'flex';
+            } else {
+                loginButton.style.display = 'inline-block';
+                logoutButton.style.display = 'none';
+                newNoteButton.style.display = 'none';
+                searchContainer.style.display = 'none';
+                notesContainer.innerHTML = '';
+            }
+        }
 
         // 新增筆記
         newNoteButton.addEventListener('click', () => {
             const category = prompt('輸入筆記分類:');
             const title = prompt('輸入標題:');
-            if (title && category) {
-                db.collection('Notes').add({
+            if (title && category && currentUser) {
+                db.collection('Users').doc(currentUser.uid).collection('Notes').add({
                     category: category,
                     title: title,
                     content: '',
                     canvasData: '',
                     textColor: '#000000',
-                    brushSize: 5, // 預設畫筆粗細
+                    brushSize: 5,
                     timestamp: new Date()
                 }).then(() => {
                     displayNotes();
-                }).catch((error) => {
-                    console.error('Error adding note: ', error);
+                }).catch(error => {
+                    console.error('新增筆記時出錯:', error);
                 });
             }
         });
 
-        // 顯示筆記列表
+        // 顯示筆記
         async function displayNotes() {
+            if (!currentUser) return;
             notesContainer.innerHTML = '';
-            const notesSnapshot = await db.collection('Notes').orderBy('timestamp', 'desc').get();
+            const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
             notesSnapshot.forEach(doc => {
                 const note = doc.data();
                 createNoteElement(doc.id, note);
             });
         }
 
-        // 新增的搜尋功能
+        // 搜尋筆記
         const searchButton = document.getElementById('search-button');
-        const searchInput = document.getElementById('search-input');
         searchButton.addEventListener('click', searchNotes);
-
-        // 新增搜尋框的 "Enter" 鍵事件監聽
-        searchInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                searchNotes(); // 當按下 Enter 時，呼叫搜尋功能
-            }
-        });
 
         function searchNotes() {
             const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
             if (searchTerm === '') {
-                displayNotes(); // 顯示所有筆記
+                displayNotes();
                 return;
             }
 
-            db.collection('Notes').get().then((querySnapshot) => {
-                notesContainer.innerHTML = '';
-                querySnapshot.forEach(doc => {
-                    const note = doc.data();
-                    // 將標題和分類都轉換為小寫，並檢查是否包含搜尋字詞
-                    const titleMatches = note.title && note.title.toLowerCase().includes(searchTerm);
-                    const categoryMatches = note.category && note.category.toLowerCase().includes(searchTerm);
-
-                    // 如果標題或分類匹配，顯示該筆記
-                    if (titleMatches || categoryMatches) {
-                        createNoteElement(doc.id, note);
-                    }
+            db.collection('Users').doc(currentUser.uid).collection('Notes').get()
+                .then(querySnapshot => {
+                    notesContainer.innerHTML = '';
+                    querySnapshot.forEach(doc => {
+                        const note = doc.data();
+                        const titleMatches = note.title && note.title.toLowerCase().includes(searchTerm);
+                        const categoryMatches = note.category && note.category.toLowerCase().includes(searchTerm);
+                        if (titleMatches || categoryMatches) {
+                            createNoteElement(doc.id, note);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('搜尋筆記時出錯:', error);
                 });
-            }).catch((error) => {
-                console.error('Error searching notes: ', error);
-            });
         }
 
-        // 建立筆記元素的函數，供 displayNotes 和 searchNotes 使用
+        // 建立筆記元素
         function createNoteElement(id, note) {
             const noteElement = document.createElement('div');
             noteElement.className = 'note';
             noteElement.innerHTML = `
-                <div class="note-category"><strong>分類:</strong> ${note.category}</div>
+               <div class="note-category"><strong>分類:</strong> ${note.category}</div>
                 <h2>${note.title}</h2>
                 <textarea id="text-content-${id}" style="color: ${note.textColor};">${note.content}</textarea>
                 <div class="text-tools">
@@ -340,9 +378,8 @@
             `;
             notesContainer.appendChild(noteElement);
 
-            // 以下為您原本的事件綁定和功能實現
-            // 畫布繪圖功能
-            const canvas = document.getElementById(`canvas-${id}`);
+            // 繪圖和編輯功能
+             const canvas = document.getElementById(`canvas-${id}`);
             const ctx = canvas.getContext('2d');
             let drawing = false;
             let erasing = false;
@@ -421,7 +458,7 @@
 
         // 編輯筆記
         async function editNote(noteId) {
-            const noteRef = db.collection('Notes').doc(noteId);
+            const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
             const noteDoc = await noteRef.get();
             if (noteDoc.exists) {
                 const note = noteDoc.data();
@@ -433,8 +470,8 @@
                         title: newTitle
                     }).then(() => {
                         displayNotes();
-                    }).catch((error) => {
-                        console.error('Error updating note: ', error);
+                    }).catch(error => {
+                        console.error('更新筆記時出錯:', error);
                     });
                 }
             }
@@ -443,13 +480,27 @@
         // 刪除筆記
         function deleteNote(noteId) {
             if (confirm('確定要刪除這個筆記嗎?')) {
-                db.collection('Notes').doc(noteId).delete().then(() => {
-                    displayNotes();
-                }).catch((error) => {
-                    console.error('Error deleting note: ', error);
-                });
+                db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId).delete()
+                    .then(() => {
+                        displayNotes();
+                    })
+                    .catch(error => {
+                        console.error('刪除筆記時出錯:', error);
+                    });
             }
         }
+
+        // 監聽使用者登入狀態
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                toggleUI();
+                displayNotes();
+            } else {
+                currentUser = null;
+                toggleUI();
+            }
+        });
 
         displayNotes(); // 初始加載筆記列表
     </script>
