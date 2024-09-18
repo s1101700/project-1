@@ -306,16 +306,14 @@
         // 顯示筆記
         async function displayNotes() {
             if (!currentUser) return;
-
-            // 每次顯示筆記前先清空容器，避免重複顯示
             notesContainer.innerHTML = '';
-            
             const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
             notesSnapshot.forEach(doc => {
                 const note = doc.data();
                 createNoteElement(doc.id, note);
             });
         }
+
         // 搜尋筆記
         const searchButton = document.getElementById('search-button');
         searchButton.addEventListener('click', searchNotes);
@@ -381,7 +379,7 @@
             notesContainer.appendChild(noteElement);
 
             // 繪圖和編輯功能
-            const canvas = document.getElementById(`canvas-${id}`);
+             const canvas = document.getElementById(`canvas-${id}`);
             const ctx = canvas.getContext('2d');
             let drawing = false;
             let erasing = false;
@@ -415,14 +413,12 @@
 
             document.getElementById(`save-note-${id}`).addEventListener('click', async () => {
                 const textContent = document.getElementById(`text-content-${id}`).value;
-                const dataURL = canvas.toDataURL(); // 確保 dataURL 獲取成功
-                const textColor = textColorPicker.value;
-
+                const dataURL = canvas.toDataURL();
                 await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(id).update({
-                    canvasData: dataURL,       // 保存畫布的數據
-                    content: textContent,      // 保存筆記文本內容
-                    textColor: textColor,      // 保存文字顏色
-                    brushSize: brushSize       // 保存畫筆大小
+                    canvasData: dataURL,
+                    content: textContent,
+                    textColor: textColorPicker.value,  // 確保文字顏色也被保存
+                    brushSize: brushSize
                 });
             });
 
@@ -498,15 +494,12 @@
         // 監聽使用者登入狀態
         auth.onAuthStateChanged(user => {
             if (user) {
-                // 檢查當前用戶是否變更，避免重複執行
-                if (!currentUser || currentUser.uid !== user.uid) { 
-                    currentUser = user;
-                    toggleUI();
-                    displayNotes();  // 登入時顯示筆記
-                }
+                currentUser = user;
+                toggleUI();
+                displayNotes();
             } else {
                 currentUser = null;
-                toggleUI();  // 登出時更新 UI
+                toggleUI();
             }
         });
 
