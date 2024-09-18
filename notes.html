@@ -103,25 +103,26 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
 
-        #login-button, #logout-button, #new-note {
+        #new-note {
+            display: block;
+            margin: 20px;
+            padding: 12px 18px;
+            font-size: 16px;
             background: linear-gradient(90deg, #0056b3, #007bff);
             color: #ffffff;
-            padding: 12px 18px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            margin-left: 8px;
             transition: background 0.3s ease, box-shadow 0.3s ease;
             font-weight: 600;
-            font-size: 16px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        #login-button:hover, #logout-button:hover, #new-note:hover {
+        #new-note:hover {
             background: linear-gradient(90deg, #004ba0, #0056b3);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
-        
+
         #search-container {
             display: flex;               /* 讓搜尋框和按鈕在同一行 */
             justify-content: flex-start; /* 讓它們在左邊對齊 */
