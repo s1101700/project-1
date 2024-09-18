@@ -27,6 +27,13 @@
             box-sizing: border-box;
         }
 
+        .header {
+            display: flex;
+            justify-content: flex-end;   /* 按鈕靠右 */
+            align-items: center;         /* 垂直居中對齊 */
+            margin-bottom: 40px;         /* 與下面的內容保持間距 */
+        }
+
         h1 {
             text-align: center;
             color: #0056b3;
@@ -100,7 +107,7 @@
 
         #new-note {
             display: block;
-            margin: 20px auto;
+            margin: 20px;
             padding: 12px 18px;
             font-size: 16px;
             background: linear-gradient(90deg, #0056b3, #007bff);
@@ -116,6 +123,32 @@
         #new-note:hover {
             background: linear-gradient(90deg, #004ba0, #0056b3);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #search-container {
+            display: flex;               /* 讓搜尋框和按鈕在同一行 */
+            justify-content: flex-start; /* 讓它們在左邊對齊 */
+            align-items: center;         /* 垂直居中對齊 */
+            gap: 10px;                   /* 添加一個 10px 的間距 */
+            margin-bottom: 20px;         /* 與下面的內容保持間距 */
+        }
+
+        #search-input {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+        }
+
+        #search-button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background: linear-gradient(90deg, #0056b3, #007bff);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
 
         .note-category {
@@ -167,15 +200,19 @@
 <body>
     <div class="container">
         <h1>網頁筆記本</h1>
+        <div class="header">
+            <button id="new-note">新增筆記</button>
+        </div>
 
         <!-- 新增的搜尋輸入框和按鈕 -->
-        <input type="text" id="search-input" placeholder="搜尋筆記標題或分類">
-        <button id="search-button">搜尋</button>
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="搜尋筆記標題或分類">
+            <button id="search-button">搜尋</button>
+        </div>
 
         <div id="notes-container">
             <!-- 筆記列表將顯示在這裡 -->
         </div>
-        <button id="new-note">新增筆記</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
@@ -183,15 +220,15 @@
     <script>
         // Firebase 初始化
        const firebaseConfig = {
-  apiKey: "AIzaSyBEmo_Za0U52zNFBz-IikurtL0UWcco0sc",
-  authDomain: "project-f7999.firebaseapp.com",
-  databaseURL: "https://project-f7999-default-rtdb.firebaseio.com",
-  projectId: "project-f7999",
-  storageBucket: "project-f7999.appspot.com",
-  messagingSenderId: "579656505169",
-  appId: "1:579656505169:web:29fc7a9ed5764e35a66570",
-  measurementId: "G-GP2NN9Y1D5"
-};
+        apiKey: "AIzaSyBEmo_Za0U52zNFBz-IikurtL0UWcco0sc",
+        authDomain: "project-f7999.firebaseapp.com",
+        databaseURL: "https://project-f7999-default-rtdb.firebaseio.com",
+        projectId: "project-f7999",
+        storageBucket: "project-f7999.appspot.com",
+        messagingSenderId: "579656505169",
+        appId: "1:579656505169:web:29fc7a9ed5764e35a66570",
+        measurementId: "G-GP2NN9Y1D5"
+        };
 
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore(app);
@@ -232,7 +269,15 @@
 
         // 新增的搜尋功能
         const searchButton = document.getElementById('search-button');
+        const searchInput = document.getElementById('search-input');
         searchButton.addEventListener('click', searchNotes);
+
+        // 新增搜尋框的 "Enter" 鍵事件監聽
+        searchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                searchNotes(); // 當按下 Enter 時，呼叫搜尋功能
+            }
+        });
 
         function searchNotes() {
             const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
