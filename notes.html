@@ -510,17 +510,6 @@
             }
         });
 
-        await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(id).update({
-            canvasData: dataURL,
-            content: textContent,
-            textColor: textColor,
-            brushSize: brushSize
-        }).then(() => {
-            console.log('筆記已成功更新');
-        }).catch(error => {
-            console.error('更新筆記時出錯:', error);
-        });
-
         displayNotes(); // 初始加載筆記列表
     </script>
 </body>
