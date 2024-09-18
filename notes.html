@@ -379,7 +379,7 @@
             notesContainer.appendChild(noteElement);
 
             // 繪圖和編輯功能
-             const canvas = document.getElementById(`canvas-${id}`);
+            const canvas = document.getElementById(`canvas-${id}`);
             const ctx = canvas.getContext('2d');
             let drawing = false;
             let erasing = false;
@@ -494,9 +494,11 @@
         // 監聽使用者登入狀態
         auth.onAuthStateChanged(user => {
             if (user) {
-                currentUser = user;
-                toggleUI();
-                displayNotes();
+                if (!currentUser) { // 只有當前用戶和新用戶不一致時才更新
+                    currentUser = user;
+                    toggleUI();
+                    displayNotes();
+                }
             } else {
                 currentUser = null;
                 toggleUI();
