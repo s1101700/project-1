@@ -306,7 +306,9 @@
         // 顯示筆記
         async function displayNotes() {
             if (!currentUser) return;
+            // 每次顯示筆記前先清空容器，避免重複顯示
             notesContainer.innerHTML = '';
+            
             const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
             notesSnapshot.forEach(doc => {
                 const note = doc.data();
@@ -494,14 +496,15 @@
         // 監聽使用者登入狀態
         auth.onAuthStateChanged(user => {
             if (user) {
-                if (!currentUser) { // 只有當前用戶和新用戶不一致時才更新
+                // 檢查當前用戶是否變更，避免重複執行
+                if (!currentUser || currentUser.uid !== user.uid) { 
                     currentUser = user;
                     toggleUI();
-                    displayNotes();
+                    displayNotes();  // 登入時顯示筆記
                 }
             } else {
                 currentUser = null;
-                toggleUI();
+                toggleUI();  // 登出時更新 UI
             }
         });
 
