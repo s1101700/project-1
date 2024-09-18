@@ -414,9 +414,10 @@
             document.getElementById(`save-note-${id}`).addEventListener('click', async () => {
                 const textContent = document.getElementById(`text-content-${id}`).value;
                 const dataURL = canvas.toDataURL();
-                await db.collection('Notes').doc(id).update({
+                await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(id).update({
                     canvasData: dataURL,
                     content: textContent,
+                    textColor: textColorPicker.value,  // 確保文字顏色也被保存
                     brushSize: brushSize
                 });
             });
