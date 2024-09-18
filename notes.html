@@ -251,7 +251,7 @@
                 .then(result => {
                     currentUser = result.user;
                     toggleUI();
-                    displayNotes();
+                    // displayNotes();
                 })
                 .catch(error => {
                     console.error('Google 登入失敗:', error);
@@ -506,7 +506,7 @@
             }
         });
 
-        displayNotes(); // 初始加載筆記列表
+        // displayNotes(); // 初始加載筆記列表
     </script>
 </body>
 
