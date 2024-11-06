@@ -292,43 +292,23 @@
         }
 
         // 新增筆記
-        // newNoteButton.addEventListener('click', () => {
-        //     const category = prompt('輸入筆記分類:');
-        //     const title = prompt('輸入標題:');
-        //     if (title && category && currentUser) {
-        //         db.collection('Users').doc(currentUser.uid).collection('Notes').add({
-        //             category: category,
-        //             title: title,
-        //             content: '',
-        //             canvasData: '',
-        //             textColor: '#000000',
-        //             brushSize: 5,
-        //             timestamp: new Date()
-        //         }).then(() => {
-        //             displayNotes();
-        //         }).catch(error => {
-        //             console.error('新增筆記時出錯:', error);
-        //         });
-        //     }
-        // });
-        newNoteButton.addEventListener('click', async () => {
+        newNoteButton.addEventListener('click', () => {
             const category = prompt('輸入筆記分類:');
             const title = prompt('輸入標題:');
             if (title && category && currentUser) {
-                try {
-                    await db.collection('Users').doc(currentUser.uid).collection('Notes').add({
-                        category: category,
-                        title: title,
-                        content: '',
-                        canvasData: '',
-                        textColor: '#000000',
-                        brushSize: 5,
-                        timestamp: new Date()
-                    });
+                db.collection('Users').doc(currentUser.uid).collection('Notes').add({
+                    category: category,
+                    title: title,
+                    content: '',
+                    canvasData: '',
+                    textColor: '#000000',
+                    brushSize: 5,
+                    timestamp: new Date()
+                }).then(() => {
                     displayNotes();
-                } catch (error) {
+                }).catch(error => {
                     console.error('新增筆記時出錯:', error);
-                }
+                });
             }
         });
 
