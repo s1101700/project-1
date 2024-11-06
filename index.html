@@ -7,9 +7,21 @@
     <title>登入</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body {
+        /* body {
             font-family: 'Poppins', sans-serif;
             background-color: #f2f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        } */
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #a8c0ff, #3375cb);
             margin: 0;
             padding: 0;
             display: flex;
@@ -36,8 +48,8 @@
         }
 
         button {
-            background: linear-gradient(90deg, #0056b3, #007bff);
-            color: #ffffff;
+            background-color: #cccccc;
+            color: #333333;
             padding: 12px 20px;
             border: none;
             border-radius: 8px;
@@ -48,7 +60,7 @@
         }
 
         button:hover {
-            background: linear-gradient(90deg, #004ba0, #0056b3);
+            background-color: #999999;
         }
 
         .error-message {
@@ -70,8 +82,8 @@
     </div>
 
     <!-- 引入 Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
     
     <script>
         // Firebase 初始化
@@ -102,7 +114,9 @@
                 .then((result) => {
                     const user = result.user;
                     console.log('登入成功:', user);
-                    window.location.href = 'notes.html'; // 登入成功後跳轉到筆記本頁面
+                    // 生成用戶專屬的 notes 頁面 URL
+                    const userNotesUrl = `notes.html?uid=${user.uid}`;
+                    window.location.href = userNotesUrl; // 跳轉到專屬的筆記頁面
                 })
                 .catch((error) => {
                     console.error('Google 登入錯誤:', error);
