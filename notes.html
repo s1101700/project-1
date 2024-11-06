@@ -313,12 +313,23 @@
         });
 
         // 顯示筆記
+        // async function displayNotes() {
+        //     if (!currentUser) return;
+
+        //     // 清空筆記容器，避免重複顯示
+        //     notesContainer.innerHTML = '';
+
+        //     const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
+        //     notesSnapshot.forEach(doc => {
+        //         const note = doc.data();
+        //         createNoteElement(doc.id, note);
+        //     });
+        // }
+
         async function displayNotes() {
             if (!currentUser) return;
 
-            // 清空筆記容器，避免重複顯示
-            notesContainer.innerHTML = '';
-
+            notesContainer.innerHTML = '';  // 清空筆記容器
             const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
             notesSnapshot.forEach(doc => {
                 const note = doc.data();
@@ -327,10 +338,42 @@
         }
 
         // 搜尋筆記
-        const searchButton = document.getElementById('search-button');
-        searchButton.addEventListener('click', searchNotes);
+        // const searchButton = document.getElementById('search-button');
+        // searchButton.addEventListener('click', searchNotes);
 
-        function searchNotes() {
+        // function searchNotes() {
+        //     const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+        //     if (searchTerm === '') {
+        //         displayNotes();
+        //         return;
+        //     }
+
+        //     db.collection('Users').doc(currentUser.uid).collection('Notes').get()
+        //         .then(querySnapshot => {
+        //             notesContainer.innerHTML = '';
+        //             querySnapshot.forEach(doc => {
+        //                 const note = doc.data();
+        //                 const titleMatches = note.title && note.title.toLowerCase().includes(searchTerm);
+        //                 const categoryMatches = note.category && note.category.toLowerCase().includes(searchTerm);
+        //                 if (titleMatches || categoryMatches) {
+        //                     createNoteElement(doc.id, note);
+        //                 }
+        //             });
+        //         })
+        //         .catch(error => {
+        //             console.error('搜尋筆記時出錯:', error);
+        //         });
+        // }
+
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        const searchNotes = debounce(function() {
             const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
             if (searchTerm === '') {
                 displayNotes();
@@ -352,7 +395,7 @@
                 .catch(error => {
                     console.error('搜尋筆記時出錯:', error);
                 });
-        }
+        }, 300);  // 設定延遲為 300ms
 
         // 建立筆記元素
         function createNoteElement(id, note) {
@@ -456,6 +499,39 @@
         }
 
         // 繪圖功能
+        // function draw(event, ctx, drawing, erasing, color, size) {
+        //     if (!drawing) return;
+
+        //     ctx.lineWidth = size;
+        //     ctx.lineCap = 'round';
+        //     ctx.strokeStyle = erasing ? '#ffffff' : color;
+
+        //     ctx.lineTo(event.offsetX, event.offsetY);
+        //     ctx.stroke();
+        //     ctx.beginPath();
+        //     ctx.moveTo(event.offsetX, event.offsetY);
+        // }
+
+        // 使用節流 (throttle) 優化 draw 函數，減少 mousemove 事件頻率
+        function throttle(func, limit) {
+            let lastFunc;
+            let lastRan;
+            return function(...args) {
+                if (!lastRan) {
+                    func.apply(this, args);
+                    lastRan = Date.now();
+                } else {
+                    clearTimeout(lastFunc);
+                    lastFunc = setTimeout(() => {
+                        if ((Date.now() - lastRan) >= limit) {
+                            func.apply(this, args);
+                            lastRan = Date.now();
+                        }
+                    }, limit - (Date.now() - lastRan));
+                }
+            };
+        }
+
         function draw(event, ctx, drawing, erasing, color, size) {
             if (!drawing) return;
 
@@ -468,6 +544,10 @@
             ctx.beginPath();
             ctx.moveTo(event.offsetX, event.offsetY);
         }
+
+        canvas.addEventListener('mousemove', throttle((event) => {
+            draw(event, ctx, drawing, erasing, currentColor, brushSize);
+        }, 20));  // 設定每 20ms 處理一次
 
         // 編輯筆記
         async function editNote(noteId) {
