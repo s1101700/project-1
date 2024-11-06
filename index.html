@@ -70,8 +70,8 @@
     </div>
 
     <!-- 引入 Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     
     <script>
         // Firebase 初始化
@@ -102,9 +102,7 @@
                 .then((result) => {
                     const user = result.user;
                     console.log('登入成功:', user);
-                    // 生成用戶專屬的 notes 頁面 URL
-                    const userNotesUrl = `notes.html?uid=${user.uid}`;
-                    window.location.href = userNotesUrl; // 跳轉到專屬的筆記頁面
+                    window.location.href = 'notes.html'; // 登入成功後跳轉到筆記本頁面
                 })
                 .catch((error) => {
                     console.error('Google 登入錯誤:', error);
