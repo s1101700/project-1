@@ -312,10 +312,33 @@
         //     }
         // });
 
+        // newNoteButton.addEventListener('click', async () => {
+        //     const category = prompt('輸入筆記分類:');
+        //     const title = prompt('輸入標題:');
+        //     if (title && category && currentUser) {
+        //         try {
+        //             await db.collection('Users').doc(currentUser.uid).collection('Notes').add({
+        //                 category: category,
+        //                 title: title,
+        //                 content: '',
+        //                 canvasData: '',
+        //                 textColor: '#000000',
+        //                 brushSize: 5,
+        //                 timestamp: new Date()
+        //             });
+        //             displayNotes();  // 再次顯示筆記
+        //         } catch (error) {
+        //             console.error('新增筆記時出錯:', error);
+        //         }
+        //     }
+        // });
+
         newNoteButton.addEventListener('click', async () => {
             const category = prompt('輸入筆記分類:');
             const title = prompt('輸入標題:');
             if (title && category && currentUser) {
+                newNoteButton.disabled = true; // 禁用按鈕
+                showLoadingIndicator(); // 顯示 loading 樣式
                 try {
                     await db.collection('Users').doc(currentUser.uid).collection('Notes').add({
                         category: category,
@@ -326,25 +349,43 @@
                         brushSize: 5,
                         timestamp: new Date()
                     });
-                    displayNotes();  // 再次顯示筆記
+                    await displayNotes();
                 } catch (error) {
                     console.error('新增筆記時出錯:', error);
+                } finally {
+                    hideLoadingIndicator(); // 隱藏 loading 樣式
+                    newNoteButton.disabled = false; // 恢復按鈕
                 }
             }
         });
 
         // 顯示筆記
+        // async function displayNotes() {
+        //     if (!currentUser) return;
+
+        //     // 清空筆記容器，避免重複顯示
+        //     notesContainer.innerHTML = '';
+
+        //     const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
+        //     notesSnapshot.forEach(doc => {
+        //         const note = doc.data();
+        //         createNoteElement(doc.id, note);
+        //     });
+        // }
+
         async function displayNotes() {
-            if (!currentUser) return;
-
-            // 清空筆記容器，避免重複顯示
-            notesContainer.innerHTML = '';
-
-            const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
-            notesSnapshot.forEach(doc => {
-                const note = doc.data();
-                createNoteElement(doc.id, note);
+            // 批量處理筆記更新，避免多次重排
+            const notesContainer = document.getElementById('notes-container');
+            const notesData = await getNotesData();  // 非同步獲取資料
+            const fragment = document.createDocumentFragment();
+            
+            notesData.forEach(note => {
+                const noteElement = createNoteElement(note);
+                fragment.appendChild(noteElement);
             });
+
+            notesContainer.innerHTML = ''; // 清空原有內容
+            notesContainer.appendChild(fragment); // 一次性加入新的筆記元素
         }
 
         // 搜尋筆記
