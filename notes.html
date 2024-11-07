@@ -573,43 +573,43 @@
                 });
             });
         }
-        console.log("Firebase Auth:", firebase.auth());
-        console.log("Firebase Firestore:", firebase.firestore());
+        // console.log("Firebase Auth:", firebase.auth());
+        // console.log("Firebase Firestore:", firebase.firestore());
 
         // 共用功能
         async function shareNote(noteId) {
-            console.log("shareNote function called with noteId:", noteId);
+            console.log("shareNote function called with noteId:", noteId); // Step 1: 確認函數被調用
+
             const email = prompt('請輸入共用對象的電子郵件：');
-            if (!email) return;
-
+            if (!email) {
+                console.log("No email entered."); // Step 2: 確認 email 有輸入
+                return;
+            }
+            
             try {
-                console.log("正在共用筆記給：", email); // Step 1: 印出共用對象的電子郵件
-
-                // 查找目標用戶
+                console.log("Searching for user with email:", email); // Step 3: 開始查找用戶
                 const userSnapshot = await db.collection('Users').where('email', '==', email).limit(1).get();
+
                 if (userSnapshot.empty) {
+                    console.log("User not found for email:", email); // Step 4: 未找到目標用戶
                     alert('找不到該使用者');
                     return;
                 }
 
+                console.log("User found, proceeding to update note."); // Step 5: 找到用戶後繼續
                 const targetUser = userSnapshot.docs[0];
-
-                // 取得原始筆記
                 const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
                 const noteDoc = await noteRef.get();
+
                 if (!noteDoc.exists) {
-                    console.error('找不到該筆記');
+                    console.log("Note does not exist:", noteId); // Step 6: 未找到筆記
                     return;
                 }
 
                 const noteData = noteDoc.data();
-                console.log("原始筆記資料:", noteData); // Step 2: 檢查原始筆記內容
-
-                // 確保共用清單已存在，並且新增目標用戶的電子郵件
                 const sharedWith = noteData.sharedWith || [];
                 if (!sharedWith.includes(email)) {
                     sharedWith.push(email); // 添加共用的電子郵件
-                    console.log("共用清單更新後:", sharedWith); // Step 3: 確認更新後的共用清單
                 }
 
                 // 更新筆記，加入 sharedWith 欄位
@@ -617,10 +617,10 @@
                     sharedWith: sharedWith
                 });
 
-                console.log('筆記已成功共用給:', email); // Step 4: 確認更新成功訊息
+                console.log("Note successfully shared with:", email); // Step 7: 成功共用
                 alert('筆記已成功共用給 ' + email);
             } catch (error) {
-                console.error('分享筆記時出錯:', error);
+                console.error('分享筆記時出錯:', error); // Step 8: 捕捉錯誤
             }
         }
 
