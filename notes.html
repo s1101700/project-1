@@ -325,7 +325,6 @@
         async function displayNotes() {
             if (!currentUser) return;
 
-            // 清空筆記容器，避免重複顯示
             notesContainer.innerHTML = '';
 
             // 顯示自己的筆記
@@ -588,17 +587,11 @@
                 }
 
                 const targetUser = userSnapshot.docs[0];
-                const sharedNoteRef = db.collection('Users').doc(targetUser.id).collection('SharedNotes').doc(noteId);
-
                 const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
-                const noteDoc = await noteRef.get();
-                if (!noteDoc.exists) {
-                    console.error('找不到該筆記');
-                    return;
-                }
 
-                await sharedNoteRef.set(noteDoc.data()); // 將筆記資料存到對方的 SharedNotes 集合
-                await sharedNoteRef.update({ owner: currentUser.uid }); // 設定筆記擁有者
+                await noteRef.update({
+                    sharedWith: firebase.firestore.FieldValue.arrayUnion(email)  // 更新共用使用者清單
+                });
 
                 alert('筆記已成功分享');
             } catch (error) {
