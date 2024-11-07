@@ -580,33 +580,42 @@
             if (!email) return;
 
             try {
+                console.log("正在共用筆記給：", email); // Step 1: 印出共用對象的電子郵件
+
+                // 查找目標用戶
                 const userSnapshot = await db.collection('Users').where('email', '==', email).limit(1).get();
                 if (userSnapshot.empty) {
-                alert('找不到該使用者');
-                return;
+                    alert('找不到該使用者');
+                    return;
                 }
 
                 const targetUser = userSnapshot.docs[0];
+
+                // 取得原始筆記
                 const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
                 const noteDoc = await noteRef.get();
-
                 if (!noteDoc.exists) {
-                console.error('找不到該筆記');
-                return;
+                    console.error('找不到該筆記');
+                    return;
                 }
 
                 const noteData = noteDoc.data();
+                console.log("原始筆記資料:", noteData); // Step 2: 檢查原始筆記內容
+
+                // 確保共用清單已存在，並且新增目標用戶的電子郵件
                 const sharedWith = noteData.sharedWith || [];
                 if (!sharedWith.includes(email)) {
-                sharedWith.push(email);
+                    sharedWith.push(email); // 添加共用的電子郵件
+                    console.log("共用清單更新後:", sharedWith); // Step 3: 確認更新後的共用清單
                 }
 
+                // 更新筆記，加入 sharedWith 欄位
                 await noteRef.update({
-                sharedWith: sharedWith
+                    sharedWith: sharedWith
                 });
 
+                console.log('筆記已成功共用給:', email); // Step 4: 確認更新成功訊息
                 alert('筆記已成功共用給 ' + email);
-                console.log('共用筆記成功:', sharedWith);
             } catch (error) {
                 console.error('分享筆記時出錯:', error);
             }
