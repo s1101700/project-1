@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網頁筆記本</title>
+    <title>網頁筆記</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -327,8 +327,19 @@
             // 清空筆記容器，避免重複顯示
             notesContainer.innerHTML = '';
 
+            // 顯示自己的筆記
             const notesSnapshot = await db.collection('Users').doc(currentUser.uid).collection('Notes').orderBy('timestamp', 'desc').get();
             notesSnapshot.forEach(doc => {
+                const note = doc.data();
+                createNoteElement(doc.id, note);
+            });
+
+            // 顯示共用給我的筆記
+            const sharedNotesSnapshot = await db.collectionGroup('Notes')
+                .where('sharedWith', 'array-contains', currentUser.email)
+                .get();
+            
+            sharedNotesSnapshot.forEach(doc => {
                 const note = doc.data();
                 createNoteElement(doc.id, note);
             });
@@ -394,12 +405,13 @@
                 <div class="actions">
                     <button onclick="editNote('${id}')">編輯</button>
                     <button onclick="deleteNote('${id}')">刪除</button>
+                    <button onclick="shareNote('${id}')">共用</button>
                 </div>
             `;
             notesContainer.appendChild(noteElement);
 
             // 繪圖和編輯功能
-             const canvas = document.getElementById(`canvas-${id}`);
+            const canvas = document.getElementById(`canvas-${id}`);
             const ctx = canvas.getContext('2d');
             let drawing = false;
             let erasing = false;
@@ -463,6 +475,138 @@
             });
         }
 
+        function createSharedNoteElement(id, note) {
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
+            noteElement.innerHTML = `
+               <div class="note-category"><strong>分類:</strong> ${note.category} (共用)</div>
+                <h2>${note.title}</h2>
+                <textarea id="text-content-${id}" style="color: ${note.textColor};">${note.content}</textarea>
+                <div class="text-tools">
+                    <label for="text-color-picker-${id}">文字顏色:</label>
+                    <input type="color" id="text-color-picker-${id}" value="${note.textColor}">
+                </div>
+                <canvas id="canvas-${id}" width="600" height="400"></canvas>
+                <div class="canvas-tools">
+                    <label for="color-picker-${id}">畫筆顏色:</label>
+                    <input type="color" id="color-picker-${id}" value="#000000">
+                    <label for="brush-size-${id}">畫筆粗細:</label>
+                    <select id="brush-size-${id}">
+                        <option value="2">2px</option>
+                        <option value="5">5px</option>
+                        <option value="10">10px</option>
+                        <option value="15">15px</option>
+                        <option value="20">20px</option>
+                    </select>
+                    <button id="brush-${id}">畫筆</button>
+                    <button id="eraser-${id}">橡皮擦</button>
+                    <button id="clear-canvas-${id}">清除畫布</button>
+                    <button id="save-note-${id}">保存</button>
+                </div>
+                <div class="actions">
+                    <button onclick="editSharedNote('${id}')">儲存變更</button>
+                </div>
+            `;
+            notesContainer.appendChild(noteElement);
+
+            // 繪圖和編輯功能
+            const canvas = document.getElementById(`canvas-${id}`);
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+            let erasing = false;
+            let currentColor = '#000000';
+            let brushSize = note.brushSize || 5;
+
+            canvas.addEventListener('mousedown', () => { drawing = true; });
+            canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+            canvas.addEventListener('mousemove', (event) => draw(event, ctx, drawing, erasing, currentColor, brushSize));
+
+            document.getElementById(`color-picker-${id}`).addEventListener('input', (event) => {
+                currentColor = event.target.value;
+                erasing = false;
+            });
+
+            document.getElementById(`brush-size-${id}`).addEventListener('change', (event) => {
+                brushSize = event.target.value;
+            });
+
+            document.getElementById(`eraser-${id}`).addEventListener('click', () => {
+                erasing = true;
+            });
+
+            document.getElementById(`clear-canvas-${id}`).addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+
+            document.getElementById(`brush-${id}`).addEventListener('click', () => {
+                erasing = false;
+            });
+
+            document.getElementById(`save-note-${id}`).addEventListener('click', async () => {
+                const textContent = document.getElementById(`text-content-${id}`).value;
+                const dataURL = canvas.toDataURL();
+                await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(id).update({
+                    canvasData: dataURL,
+                    content: textContent,
+                    textColor: textColorPicker.value,  // 確保文字顏色也被保存
+                    brushSize: brushSize
+                });
+            });
+
+            // 載入保存的畫布
+            if (note.canvasData) {
+                const img = new Image();
+                img.src = note.canvasData;
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                };
+            }
+
+            // 文字顏色選擇
+            const textContent = document.getElementById(`text-content-${id}`);
+            const textColorPicker = document.getElementById(`text-color-picker-${id}`);
+            textColorPicker.addEventListener('input', async (event) => {
+                const newColor = event.target.value;
+                textContent.style.color = newColor;
+                await db.collection('Notes').doc(id).update({
+                    textColor: newColor
+                });
+            });
+        }
+
+        // 共用功能
+        async function shareNote(noteId) {
+            const email = prompt('請輸入共用對象的電子郵件：');
+            if (!email) return;
+
+            try {
+                const userSnapshot = await db.collection('Users').where('email', '==', email).limit(1).get();
+                if (userSnapshot.empty) {
+                    alert('找不到該使用者');
+                    return;
+                }
+
+                const targetUser = userSnapshot.docs[0];
+                const sharedNoteRef = db.collection('Users').doc(targetUser.id).collection('SharedNotes').doc(noteId);
+
+                const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
+                const noteDoc = await noteRef.get();
+                if (!noteDoc.exists) {
+                    console.error('找不到該筆記');
+                    return;
+                }
+
+                await sharedNoteRef.set(noteDoc.data()); // 將筆記資料存到對方的 SharedNotes 集合
+                await sharedNoteRef.update({ owner: currentUser.uid }); // 設定筆記擁有者
+
+                alert('筆記已成功分享');
+            } catch (error) {
+                console.error('分享筆記時出錯:', error);
+            }
+        }
+
+
+
         // 繪圖功能
         function draw(event, ctx, drawing, erasing, color, size) {
             if (!drawing) return;
@@ -498,6 +642,19 @@
             }
         }
 
+        // 修改共用筆記
+        async function editSharedNote(noteId) {
+            const textContent = document.getElementById(`text-content-${noteId}`).value;
+            const dataURL = document.getElementById(`canvas-${noteId}`).toDataURL();
+
+            await db.collection('Users').doc(currentUser.uid).collection('SharedNotes').doc(noteId).update({
+                content: textContent,
+                canvasData: dataURL
+            });
+
+            alert('筆記已更新');
+        }
+
         // 刪除筆記
         function deleteNote(noteId) {
             if (confirm('確定要刪除這個筆記嗎?')) {
@@ -508,6 +665,21 @@
                     .catch(error => {
                         console.error('刪除筆記時出錯:', error);
                     });
+            }
+        }
+
+        async function shareNoteWithEmail(noteId, email) {
+            try {
+                const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
+                
+                // 更新 `sharedWith` 欄位
+                await noteRef.update({
+                    sharedWith: firebase.firestore.FieldValue.arrayUnion(email)
+                });
+                
+                console.log('筆記已成功共用給:', email);
+            } catch (error) {
+                console.error('共用筆記時出錯:', error);
             }
         }
 
