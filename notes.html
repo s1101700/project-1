@@ -573,9 +573,12 @@
                 });
             });
         }
+        console.log("Firebase Auth:", firebase.auth());
+        console.log("Firebase Firestore:", firebase.firestore());
 
         // 共用功能
         async function shareNote(noteId) {
+            console.log("shareNote function called with noteId:", noteId);
             const email = prompt('請輸入共用對象的電子郵件：');
             if (!email) return;
 
