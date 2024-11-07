@@ -582,24 +582,35 @@
             try {
                 const userSnapshot = await db.collection('Users').where('email', '==', email).limit(1).get();
                 if (userSnapshot.empty) {
-                    alert('找不到該使用者');
-                    return;
+                alert('找不到該使用者');
+                return;
                 }
 
                 const targetUser = userSnapshot.docs[0];
                 const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
+                const noteDoc = await noteRef.get();
+
+                if (!noteDoc.exists) {
+                console.error('找不到該筆記');
+                return;
+                }
+
+                const noteData = noteDoc.data();
+                const sharedWith = noteData.sharedWith || [];
+                if (!sharedWith.includes(email)) {
+                sharedWith.push(email);
+                }
 
                 await noteRef.update({
-                    sharedWith: firebase.firestore.FieldValue.arrayUnion(email)  // 更新共用使用者清單
+                sharedWith: sharedWith
                 });
 
-                alert('筆記已成功分享');
+                alert('筆記已成功共用給 ' + email);
+                console.log('共用筆記成功:', sharedWith);
             } catch (error) {
                 console.error('分享筆記時出錯:', error);
             }
         }
-
-
 
         // 繪圖功能
         function draw(event, ctx, drawing, erasing, color, size) {
