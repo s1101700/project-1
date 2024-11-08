@@ -700,77 +700,88 @@
             }
         }
 
-        // 修改共用筆記
-        async function editSharedNote(noteId) {
-            const textContent = document.getElementById(`text-content-${noteId}`).value;
-            const dataURL = document.getElementById(`canvas-${noteId}`).toDataURL();
+       // 檢查電子郵件格式的正則表達式
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
 
-            try {
-                const querySnapshot = await db.collectionGroup('Notes')
-                    .where(firebase.firestore.FieldPath.documentId(), '==', noteId)
-                    .get();
+// 編輯共用筆記
+async function editSharedNote(noteId) {
+    const textContent = document.getElementById(`text-content-${noteId}`).value;
+    const dataURL = document.getElementById(`canvas-${noteId}`).toDataURL();
 
-                querySnapshot.forEach(async doc => {
-                    await doc.ref.update({
-                        content: textContent,
-                        canvasData: dataURL
-                    });
-                });
+    try {
+        await db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId)
+            .update({
+                content: textContent,
+                canvasData: dataURL
+            });
+        alert('共用筆記已更新');
+    } catch (error) {
+        console.error('更新共用筆記時出錯:', error);
+    }
+}
 
-                alert('共用筆記已成功更新');
-            } catch (error) {
-                console.error('更新共用筆記時出錯:', error);
-                alert('更新共用筆記失敗');
-            }
-        }
-
-        // 刪除筆記
-        async function deleteNote(noteId) {
-            const confirmation = confirm('你確定要刪除此筆記嗎？這將同時移除共用權限。');
-            if (!confirmation) {
-                return;
-            }
-
-            try {
-                const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
-                const noteDoc = await noteRef.get();
-
-                if (noteDoc.exists) {
-                    await noteRef.delete();
-                    alert('筆記已成功刪除');
-                }
-            } catch (error) {
-                console.error('刪除筆記時出錯:', error);
-                alert('刪除筆記失敗');
-            }
-        }
-
-        async function shareNoteWithEmail(noteId, email) {
-            try {
-                const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
-                
-                // 更新 `sharedWith` 欄位
-                await noteRef.update({
-                    sharedWith: firebase.firestore.FieldValue.arrayUnion(email)
-                });
-                
-                console.log('筆記已成功共用給:', email);
-            } catch (error) {
-                console.error('共用筆記時出錯:', error);
-            }
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                toggleUI();
+// 刪除筆記
+function deleteNote(noteId) {
+    if (confirm('確定要刪除這個筆記嗎?')) {
+        db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId).delete()
+            .then(() => {
                 displayNotes();
-                displaySharedNotes(); // 顯示共用筆記
-            } else {
-                currentUser = null;
-                toggleUI();
-            }
+            })
+            .catch(error => {
+                console.error('刪除筆記時出錯:', error);
+            });
+    }
+}
+
+// 將指定的筆記共用給特定的電子郵件地址
+async function shareNoteWithEmail(noteId, email) {
+    // 檢查電子郵件格式
+    if (!validateEmail(email)) {
+        alert('請輸入正確的電子郵件格式');
+        return;
+    }
+
+    try {
+        const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
+        
+        // 更新 `sharedWith` 欄位，使用 Firebase arrayUnion 來添加電子郵件地址
+        await noteRef.update({
+            sharedWith: firebase.firestore.FieldValue.arrayUnion(email)
         });
+
+        console.log('筆記已成功共用給:', email);
+        alert(`筆記已成功共用給 ${email}`);
+    } catch (error) {
+        console.error('共用筆記時出錯:', error);
+        alert('共用筆記時出錯: ' + error.message);
+    }
+}
+
+// 監控使用者登入狀態
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        toggleUI();
+        displayNotes();
+        displaySharedNotes(); // 顯示共用筆記
+    } else {
+        currentUser = null;
+        toggleUI();
+    }
+});
+
+// 渲染筆記的功能
+function displayNotes() {
+    // 根據需求實現顯示使用者筆記的功能
+}
+
+function displaySharedNotes() {
+    // 根據需求實現顯示共用筆記的功能
+}
+
 
         // 監聽使用者登入狀態
         auth.onAuthStateChanged(user => {
