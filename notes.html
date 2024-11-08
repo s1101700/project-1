@@ -275,6 +275,28 @@
                 });
         });
 
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                const userRef = db.collection('Users').doc(user.uid);
+
+                try {
+                // 檢查 Firestore 中是否已有使用者資料
+                const userDoc = await userRef.get();
+                if (!userDoc.exists) {
+                    // 如果文件不存在，新增文件並儲存 email
+                    await userRef.set({
+                    email: user.email,
+                    displayName: user.displayName,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    });
+                    console.log('使用者資料已新增到 Firestore');
+                }
+                } catch (error) {
+                console.error('更新使用者資料時發生錯誤:', error);
+                }
+            }
+        });
+
         // 登出
         logoutButton.addEventListener('click', () => {
             auth.signOut().then(() => {
@@ -589,12 +611,15 @@
             }
 
             try {
+                // 查詢 Firestore 中的使用者文件，根據 email 欄位搜尋
                 const userSnapshot = await db.collection('Users').where('email', '==', email).limit(1).get();
 
                 if (userSnapshot.empty) {
-                    alert('找不到該使用者');
+                    alert('找不到該使用者，請確認電子郵件是否正確');
                     return;
                 }
+
+                const targetUserId = userSnapshot.docs[0].id;
 
                 const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
                 const noteDoc = await noteRef.get();
@@ -605,15 +630,17 @@
                 }
 
                 const sharedWith = noteDoc.data().sharedWith || [];
-                if (!sharedWith.includes(email)) {
-                    sharedWith.push(email);
+                if (sharedWith.includes(email)) {
+                    alert('該使用者已經擁有此筆記的共用權限');
+                    return;
                 }
 
+                sharedWith.push(email);
                 await noteRef.update({ sharedWith });
-                alert('筆記已成功共用給 ' + email);
+                alert(`筆記已成功共用給 ${email}`);
             } catch (error) {
                 console.error('共用筆記時出錯:', error);
-                alert('共用失敗，請檢查輸入的電子郵件');
+                alert('共用失敗，請檢查輸入的電子郵件或權限問題');
             }
         }
 
