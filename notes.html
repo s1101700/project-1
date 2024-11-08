@@ -584,6 +584,7 @@
         async function shareNote(noteId) {
             const email = prompt('請輸入共用對象的電子郵件：');
             if (!email) {
+                alert('共用取消');
                 return;
             }
 
@@ -599,6 +600,7 @@
                 const noteDoc = await noteRef.get();
 
                 if (!noteDoc.exists) {
+                    alert('筆記不存在');
                     return;
                 }
 
@@ -607,18 +609,17 @@
                     sharedWith.push(email);
                 }
 
-                await noteRef.update({
-                    sharedWith: sharedWith
-                });
-
+                await noteRef.update({ sharedWith });
                 alert('筆記已成功共用給 ' + email);
             } catch (error) {
                 console.error('共用筆記時出錯:', error);
+                alert('共用失敗，請檢查輸入的電子郵件');
             }
         }
 
         async function displaySharedNotes() {
             const currentUserEmail = currentUser.email;
+            const displayedNotes = new Set();
 
             try {
                 const sharedNotesSnapshot = await db.collectionGroup('Notes')
@@ -626,8 +627,11 @@
                     .get();
 
                 sharedNotesSnapshot.forEach(doc => {
-                    const note = doc.data();
-                    createSharedNoteElement(doc.id, note);
+                    if (!displayedNotes.has(doc.id)) {
+                        displayedNotes.add(doc.id);
+                        const note = doc.data();
+                        createSharedNoteElement(doc.id, note);
+                    }
                 });
             } catch (error) {
                 console.error('顯示共用筆記時出錯:', error);
@@ -675,33 +679,42 @@
             const dataURL = document.getElementById(`canvas-${noteId}`).toDataURL();
 
             try {
-                await db.collectionGroup('Notes').where(firebase.firestore.FieldPath.documentId(), '==', noteId)
-                    .get()
-                    .then(querySnapshot => {
-                        querySnapshot.forEach(async doc => {
-                            await doc.ref.update({
-                                content: textContent,
-                                canvasData: dataURL
-                            });
-                        });
-                    });
+                const querySnapshot = await db.collectionGroup('Notes')
+                    .where(firebase.firestore.FieldPath.documentId(), '==', noteId)
+                    .get();
 
-                alert('共用筆記已更新');
+                querySnapshot.forEach(async doc => {
+                    await doc.ref.update({
+                        content: textContent,
+                        canvasData: dataURL
+                    });
+                });
+
+                alert('共用筆記已成功更新');
             } catch (error) {
                 console.error('更新共用筆記時出錯:', error);
+                alert('更新共用筆記失敗');
             }
         }
 
         // 刪除筆記
-        function deleteNote(noteId) {
-            if (confirm('確定要刪除這個筆記嗎?')) {
-                db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId).delete()
-                    .then(() => {
-                        displayNotes();
-                    })
-                    .catch(error => {
-                        console.error('刪除筆記時出錯:', error);
-                    });
+        async function deleteNote(noteId) {
+            const confirmation = confirm('你確定要刪除此筆記嗎？這將同時移除共用權限。');
+            if (!confirmation) {
+                return;
+            }
+
+            try {
+                const noteRef = db.collection('Users').doc(currentUser.uid).collection('Notes').doc(noteId);
+                const noteDoc = await noteRef.get();
+
+                if (noteDoc.exists) {
+                    await noteRef.delete();
+                    alert('筆記已成功刪除');
+                }
+            } catch (error) {
+                console.error('刪除筆記時出錯:', error);
+                alert('刪除筆記失敗');
             }
         }
 
